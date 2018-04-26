@@ -1,0 +1,330 @@
+<?php
+/**
+ * Implements hook_form_alter to alter the comment form
+ * Adds a fieldset to the comment form
+ * Adds a hidden field for comment draft id
+ * Adds the default values for subject and body from the database
+ */
+
+function save_comment_form_comment_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+
+  $nid = $pid = 0;
+  if(arg(0) == 'node') $nid = arg(1);
+  if(arg(0) == 'comment') {
+    $nid = arg(2);
+    $pid = arg(3);
+  }
+
+  $comment_edit = FALSE;                                                        
+  if(arg(0) == 'comment' && arg(2) == 'edit') {                                 
+    $comment_edit = TRUE;                                                       
+  }
+
+  $result = db_select('save_comment', 'sc')
+    ->fields('sc')
+    ->condition('sc.uid', $user->uid, '=')
+    ->condition('sc.nid', $nid, '=')
+    ->condition('sc.pid', $pid, '=')
+    ->execute();
+
+  $default_subject = t("");
+  $default_body = t("");
+  $comment_did = 0;
+  if($result->rowCount() > 0){
+    foreach($result as $comment_draft){
+      $default_subject = $comment_draft->subject;
+      $default_body = $comment_draft->body;    
+      $comment_did = $comment_draft->did;
+    }
+  }
+ 
+  if( !$comment_edit ) {
+ 
+    // Change the subject of the comment
+    $form['subject']['#default_value'] = $default_subject;
+  
+    // Change the body of the comment
+    $form['comment_body']['und'][0]['#default_value'] = $default_body;
+ 
+    // Set the value of the comment draft id
+    $form['comment_did'] = array(
+      '#type' => 'hidden',
+      '#default_value' => $comment_did,
+      '#value' => $comment_did,
+    );
+
+    // Change "save" button text to "Publish"
+    $form['actions']['submit']['#value'] = "Publish";
+
+    // Add a button to save the comment as a draft
+    $form['actions']['save_as_draft'] = array (
+      '#type' => 'submit',
+      '#value' => t ('Save as draft'),
+      '#submit' => array('comment_draft_submit'),
+    );
+ 
+    $form['#submit'][] = t('comment_save_additional_submit');
+  }
+}
+
+/**
+ * Function to be called when the "save as draft" button is clicked and
+ * the form is submitted. Data is saved/updated.
+ */
+function comment_draft_submit($form, &$form_state){
+  global $user;
+  $comment_draft = new StdClass;
+  if(!empty($form_state['values']['nid'])){
+    $comment_draft->nid = $form_state['values']['nid'];
+  }
+  if(!empty($form_state['values']['pid'])){
+    $comment_draft->pid = $form_state['values']['pid'];
+  }
+  if(!empty($user->uid)){
+    $comment_draft->uid = $user->uid;
+  }
+  if(!empty($form_state['values']['subject'])){
+    $comment_draft->subject = $form_state['values']['subject'];
+  }
+  if(!empty($form_state['values']['comment_body']['und'][0]['value'])){
+    $comment_draft->body = $form_state['values']['comment_body']['und'][0]['value'];
+  }
+  if(!empty($form_state['input']['comment_did'])){
+    $comment_draft->did = $form_state['input']['comment_did'];
+  }
+ 
+  // If draft id is present, update the entry or create a new one.
+  if(!empty($comment_draft->did)){
+    drupal_write_record('save_comment', $comment_draft, 'did');
+  } else {
+    drupal_write_record('save_comment', $comment_draft);
+  }
+  //Redirect the form to the same node after saving the draft.
+  $form_state['redirect'] = "node/{$comment_draft->nid}";
+}
+
+/**
+ * The comment draft is deleted when the comment is saved.
+ */
+function comment_save_additional_submit($form, &$form_state){
+  $comment_did = $form_state['input']['comment_did'];
+  if(!empty($comment_did)){
+    $num_deleted = db_delete('save_comment')
+      ->condition('did', $comment_did)
+      ->execute();
+  }
+}
+
+/**
+ * Implementation of hook menu, to add a new tab to the user page
+ * which contains the drafted comments.
+ */
+function save_comment_menu(){
+ 
+  // Create a menu tab in the user page
+  $items['user/%/comment_drafts'] = array(
+    'title' => 'Comment drafts',
+    'page callback' => 'save_comment_view',
+    'access callback' => 'user_account_check',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 40,
+  );
+  
+  return $items;
+}
+
+/**
+ * Check if the user is looking at his own account
+ */
+function user_account_check($uid){
+  if ($uid) {
+    if ($GLOBALS['user']->uid == $uid || $GLOBALS['user']->uid == '1') {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * View callback
+ */
+function save_comment_view(){
+  global $user;
+  $current_uid = $user->uid;
+  
+  /***Create the header for the HTML table***/
+  $header = array(
+    array('data' => 'Title', 'field' => 'title'),
+    array('data' => 'Comment subject', 'field' => 'subject'),
+    array('data' => 'Edit link', 'field' => 'url'),
+  );
+
+  /***Retrieve rows from the custom table ***/
+  $query = db_select('save_comment','sc');
+  $query->join('node', 'n', 'sc.nid = n.nid');
+  $query->condition('sc.uid', $current_uid, '=')
+          ->fields('sc', array('nid', 'pid', 'subject'))
+	  ->fields('n', array('nid', 'title'));
+  $query->extend('PagerDefault')->limit(10)->extend('TableSort')->orderByHeader($header);
+         
+  $result = $query->execute();
+
+  $multisite_folder_name = str_replace("index.php", "", $_SERVER['PHP_SELF']);
+  
+  $rows = array();
+  foreach($result as $node){
+    if($node->pid == 0){
+      $url = "<a href='{$multisite_folder_name}node/" . $node->nid . "'>edit</a>";
+    } else {
+      $url = "<a href='{$multisite_folder_name}comment/reply/" . $node->nid . "/" . $node->pid . "'>edit</a>";
+    }
+    $rows[] = array('data' => array(
+      $node->title,
+      $node->subject,
+      $url)
+    );
+  }
+
+  /***Create the HTML table ***/
+  $html = theme('table',
+    array('header' => $header,
+          'rows' => $rows,
+          'sticky' => TRUE,
+          'empty' => 'No data.'
+    )
+  );
+  /***Add the pager display***/
+  $html .= theme('pager',
+             array('tags' => array()
+             )
+           );
+
+  return $html;
+}
+
+/**
+ * There is a problem with the breadcrumb on the search page.
+ * Home » Search » Site » Search » Site » working
+ * Terms are repeated two times. 
+ * This hook removes the multiple occurences 
+ */
+function save_comment_menu_breadcrumb_alter(&$active_trail, $item) {
+  if($item['path'] == 'search/site/%') {
+    foreach ($active_trail as $index => $breadcrumb) {
+      if (isset($breadcrumb['link_title']) && ($breadcrumb['link_title'] == 'Site' || $breadcrumb['link_title'] == 'Search')) {
+        unset($active_trail[$index]);
+      }
+    }
+  }
+  if(stristr($item['path'],'user/%')) {
+    if(count($active_trail) > 2) {
+      unset($active_trail[1]);
+    }
+  }
+}
+
+/** Change description from Files to File in the file upload help
+ */
+function save_comment_form_alter(&$form, &$form_state, $form_id) {
+  if(isset($form['field_attachment']['und']['#file_upload_description']) && !empty($form['field_attachment']['und']['#file_upload_description'])) {
+    $form['field_attachment']['und']['#file_upload_description'] = str_replace("Files", "File", $form['field_attachment']['und']['#file_upload_description']);
+  }
+} 
+
+/** 
+ * Hook to copy over WG taxonomy from Parent WG to WG topic
+ */
+
+function save_comment_node_presave($node) {
+  if( $node->type == "working_group_topic" ) {
+    if( !empty($node->group_audience['und'][0]['gid'])){
+      $group = og_load($node->group_audience['und'][0]['gid']);
+      $wg_tax = taxonomy_get_term_by_name(str_replace(",", "", $group->label));
+      foreach($wg_tax as $key => $value) {
+        if( empty($node->field_wg_taxonomy) || empty($node->field_wg_taxonomy['und']) ){
+          $node->field_wg_taxonomy['und'][] = array('tid' => $value->tid);
+        }
+      }
+    }
+  }
+}
+
+function save_comment_node_view($node, $view_mode, $langcode) {                 
+  if($node->type == "working_group" || $node->type == "working_group_topic"|| $node->type == "discussion_wiki") {  
+                                                                                
+    // Get group of the node                                                    
+    $group = og_get_group('node', $node->nid);                                  
+                                                                                
+    // Get group id of node. check type of the node first.                        
+    $node_gid = "";                                                             
+    if($node->type == "working_group") {                                        
+      $query = db_select('og')                                                      
+        ->fields('og', array('gid'))                                                
+        ->condition('etid', $node->nid, '=')                                        
+        ->execute();                                                                
+      foreach($query as $gid) {                                                     
+        $node_gid = $gid->gid;                                                      
+      }                                                                         
+    }                                                                           
+    if($node->type == "working_group_topic") {                                  
+      $node_gid = $node->group_audience['und'][0]['gid'];                       
+      $group = og_load($node_gid);                                              
+    }                                                                           
+    if($node->type == "discussion_wiki") {                                  
+      $node_gid = $node->group_audience['und'][0]['gid'];                       
+      $group = og_load($node_gid);                                              
+    }                                                                           
+                                                                                
+    $private_group = FALSE;                                                     
+    $query = db_select('field_data_group_access')                               
+      ->fields('field_data_group_access', array('group_access_value'))          
+      ->condition('entity_id', $group->etid, '=')                               
+      ->execute();                                                              
+    foreach($query as $group_visibilty) {                                       
+      if($group_visibilty->group_access_value) {                                
+        $private_group = TRUE;                                                  
+      }                                                                         
+    }
+    global $user;                                                                 
+    $found = FALSE;                                                               
+                                                                                
+    // Groups user is part of                                                   
+    $user_groups = og_get_groups_by_user($user);                                  
+                                                                                
+    // check if user belongs to any admin role                                  
+    $admin_roles = array('3', '4', '12', '13');                                 
+    $admin = FALSE;                                                             
+                                                                                
+    foreach($admin_roles as $rid) {                                             
+      if(array_key_exists($rid, $user->roles)) {                                
+        $admin = TRUE;                                                          
+      }                                                                         
+    }                                                                           
+                                                                                
+    // check is gid is part of the groups of the user                           
+    foreach($user_groups as $ug) {
+      if($ug == $node_gid) {
+        $found = TRUE;
+      }
+    }
+                                  
+    // If user is not part of group, unset body                                 
+    if(!$admin && !$found && $private_group) {
+      unset($node->content);                                                    
+      drupal_set_message("You are not authorized to view this content.", 'status');
+    }                                                                           
+  }                                                                             
+}
+
+function save_comment_file_download_access($file_item, $entity_type, $entity) {
+  if( $entity_type == "node" ) {
+    global $user;
+    if( $user->uid == 0 ) {
+      return FALSE;
+    } else {
+      return TRUE;
+    }
+  }
+}

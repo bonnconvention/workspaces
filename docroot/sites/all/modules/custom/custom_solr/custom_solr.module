@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * Hook to add a field to the Solr index.
+ * Adding a keyword according to site name here
+ * So that CMS sub sites have a filter other than site hash -
+ * which is common for all CMS sites.
+ */
+function custom_solr_apachesolr_index_document_build(ApacheSolrDocument $document, $entity, $entity_type, $env_id) {
+  global $base_url;
+  $site_name = $base_url;
+  if( strstr($site_name, 'scc') ) $sub_site_name = 'scc';
+  if( strstr($site_name, 'sharks') ) $sub_site_name = 'sharks';
+  if( strstr($site_name, 'raptors') ) $sub_site_name = 'raptors';
+
+  $document->addField('ss_site_name', $sub_site_name);
+}
+
+function custom_solr_form_apachesolr_query_alter($query) {
+  $query->addParam('fl', 'ss_site_name');
+}

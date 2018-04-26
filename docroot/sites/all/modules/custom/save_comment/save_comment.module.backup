@@ -1,0 +1,196 @@
+<?php
+/**
+ * Implements hook_form_alter to alter the comment form
+ * Adds a fieldset to the comment form
+ * Adds a hidden field for comment draft id
+ * Adds the default values for subject and body from the database
+ */
+
+function save_comment_form_comment_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+
+  $nid = $pid = 0;
+  if(arg(0) == 'node') $nid = arg(1);
+  if(arg(0) == 'comment') {
+    $nid = arg(2);
+    $pid = arg(3);
+  }
+
+  $result = db_select('save_comment', 'sc')
+    ->fields('sc')
+    ->condition('sc.uid', $user->uid, '=')
+    ->condition('sc.nid', $nid, '=')
+    ->condition('sc.pid', $pid, '=')
+    ->execute();
+
+  $default_subject = t("");
+  $default_body = t("");
+  $comment_did = 0;
+  if($result->rowCount() > 0){
+    foreach($result as $comment_draft){
+      $default_subject = $comment_draft->subject;
+      $default_body = $comment_draft->body;    
+      $comment_did = $comment_draft->did;
+    }
+  }
+  
+  //Create the fieldset
+  $form['custom_fieldset'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Comment'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  //Move the field into the fieldset
+  $form['custom_fieldset']['comment_body'] = $form['comment_body'];
+
+  //Unset the original field
+  unset($form['comment_body']);
+  
+  // Change the subject of the comment
+  $form['subject']['#default_value'] = $default_subject;
+  
+  // Change the body of the comment
+  $form['custom_fieldset']['comment_body']['und'][0]['#default_value'] = $default_body;
+  
+  // Set the value of the comment draft id
+  $form['comment_did'] = array(
+    '#type' => 'hidden',
+    '#default_value' => $comment_did,
+    '#value' => $comment_did,
+  );
+
+  // Change "save" button text to "Publish"
+  $form['actions']['submit']['#value'] = "Publish";
+
+  // Add a button to save the comment as a draft
+  $form['actions']['save_as_draft'] = array (
+    '#type' => 'submit',
+    '#value' => t ('Save as draft'),
+    '#submit' => array('comment_draft_submit'),
+  );
+ 
+  $form['#submit'][] = t('comment_save_additional_submit');
+}
+
+/**
+ * Function to be called when the "save as draft" button is clicked and
+ * the form is submitted. Data is saved/updated.
+ */
+function comment_draft_submit($form, &$form_state){
+  global $user;
+  $comment_draft = new StdClass;
+  if(!empty($form_state['values']['nid'])){
+    $comment_draft->nid = $form_state['values']['nid'];
+  }
+  if(!empty($form_state['values']['pid'])){
+    $comment_draft->pid = $form_state['values']['pid'];
+  }
+  if(!empty($user->uid)){
+    $comment_draft->uid = $user->uid;
+  }
+  if(!empty($form_state['values']['subject'])){
+    $comment_draft->subject = $form_state['values']['subject'];
+  }
+  if(!empty($form_state['values']['comment_body']['und'][0]['value'])){
+    $comment_draft->body = $form_state['values']['comment_body']['und'][0]['value'];
+  }
+  if(!empty($form_state['input']['comment_did'])){
+    $comment_draft->did = $form_state['input']['comment_did'];
+  }
+ 
+  // If draft id is present, update the entry or create a new one.
+  if(!empty($comment_draft->did)){
+    drupal_write_record('save_comment', $comment_draft, 'did');
+  } else {
+    drupal_write_record('save_comment', $comment_draft);
+  }
+}
+
+/**
+ * The comment draft is deleted when the comment is saved.
+ */
+function comment_save_additional_submit($form, &$form_state){
+  $comment_did = $form_state['input']['comment_did'];
+  if(!empty($comment_did)){
+    $num_deleted = db_delete('save_comment')
+      ->condition('did', $comment_did)
+      ->execute();
+  }
+}
+
+/**
+ * Implementation of hook menu, to add a new tab to the user page
+ * which contains the drafted comments.
+ */
+function save_comment_menu(){
+ 
+ // Create a menu tab in the user page
+ $items['user/%/comment_drafts'] = array(
+   'title' => 'Comment drafts',
+   'page callback' => 'save_comment_view',
+   'access arguments' => array('access content'),
+   'type' => MENU_LOCAL_TASK,
+   'weight' => 40,
+ );
+ 
+ return $items;
+}
+
+/**
+ * View callback
+ */
+function save_comment_view(){
+  global $user;
+  $current_uid = $user->uid;
+  
+  /***Create the header for the HTML table***/
+  $header = array(
+    array('data' => 'Title', 'field' => 'title'),
+    array('data' => 'Comment subject', 'field' => 'subject'),
+    array('data' => 'Edit link', 'field' => 'url'),
+  );
+
+  /***Retrieve rows from the custom table ***/
+  $query = db_select('save_comment','sc');
+  $query->join('node', 'n', 'sc.nid = n.nid');
+  $query->condition('sc.uid', $current_uid, '=')
+          ->fields('sc', array('nid', 'pid', 'subject'))
+	  ->fields('n', array('nid', 'title'));
+  $query->extend('PagerDefault')->limit(10)->extend('TableSort')->orderByHeader($header);
+         
+  $result = $query->execute();
+
+  $multisite_folder_name = str_replace("index.php", "", $_SERVER['PHP_SELF']);
+  
+  $rows = array();
+  foreach($result as $node){
+    if($node->pid == 0){
+      $url = "<a href='{$multisite_folder_name}node/" . $node->nid . "'>edit</a>";
+    } else {
+      $url = "<a href='{$multisite_folder_name}comment/reply/" . $node->nid . "/" . $node->pid . "'>edit</a>";
+    }
+    $rows[] = array('data' => array(
+      $node->title,
+      $node->subject,
+      $url)
+    );
+  }
+
+  /***Create the HTML table ***/
+  $html = theme('table',
+    array('header' => $header,
+          'rows' => $rows,
+          'sticky' => TRUE,
+          'empty' => 'No data.'
+    )
+  );
+  /***Add the pager display***/
+  $html .= theme('pager',
+             array('tags' => array()
+             )
+           );
+
+  return $html;
+}

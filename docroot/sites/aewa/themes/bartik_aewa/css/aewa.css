@@ -1,0 +1,143 @@
+/* CSS for the AEWA subtheme */
+#header .section {
+  background-image: url('../images/AEWA_banner.jpg');
+  background-repeat: no-repeat;
+  background-position: center top;
+}
+
+#logo {
+  padding: 15px 15px 5px 10px;
+}
+
+#name-and-slogan {
+  float: left;
+  /*margin: 20px 0 10px 15px;*/
+  padding-top: 34px;
+}
+
+.block-nice-menus .content ul{
+  padding: 0 0 0 0;
+}
+
+.user-picture {
+  float: right;
+}
+
+#comments .comment-text {
+  border: none;
+}
+
+.comment-text .user-picture {
+  float: right;
+}
+
+.comment-text .content {
+  font-size: 1em;
+}
+
+.comment-text .comment-time {
+  font-size: 0.8em;
+}
+
+#custom_footer {
+  float: left;
+  text-align: left;
+  width: 60%;
+}
+
+#organisation_logos {
+  float: left;
+  text-align: right;
+  width: 40%;
+}
+
+#unep_logo {
+  padding-right: 10px;
+}
+
+#block-system-powered-by .content {
+  text-align: left;
+}
+
+.block-configure { display:none}
+
+.toolbar .block-configure { display:block}
+
+#sidebar-first, #sidebar-second {
+  width: 210px;
+}
+
+.two-sidebars #content {
+  width: 540px;
+}
+
+#content .section, .sidebar .section {
+  padding: 0 5px;
+}
+
+* {
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.comment-text .new {
+  color:  #FF0000;
+}
+
+.submitted .user-picture img {
+  float: right; /* LTR */                                        
+  height: 85px;
+  margin: 1px 5px 0 0; /* LTR */
+}
+
+.field-type-taxonomy-term-reference {
+  margin: 0 0 0;
+}
+
+#main #content #page-title {
+  margin: 0 0 0.5em 0;
+}
+
+#block-search-form {
+  padding: 10px 10px 10px 15px;
+}
+
+#block-forum-new li a.active {
+  color: #0070B3;
+}
+
+tr td, tr th {
+  border: 1px solid #FFFFFF;
+  padding: 4px;
+  text-align: left;
+}
+
+#main #sidebar-first {
+  margin-top: 10px;
+}
+
+#main #sidebar-second{
+  margin-top: 10px;
+}
+
+#main #content{
+  margin-top: 10px;
+}
+
+#comments ul.inline, #comments ul.links.inline {
+  font-weight: bold;
+  font-size: 1em;
+}
+
+body, #site-slogan, .ui-widget, .comment-form label {
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.profile h3 {
+  border-bottom: none;
+  font-weight: bold;
+  color: #669900;
+}
+
+.profile .user-picture {
+  float: right;
+}

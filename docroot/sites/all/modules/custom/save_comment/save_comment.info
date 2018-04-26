@@ -1,0 +1,6 @@
+name = "Save comments"
+description = "Module to alter the comments form. Gives an option to save comments as drafts." 
+version = "7.x-1.0"
+core = 7.x
+files[] = save_comment.module 
+files[] = save_commet.install

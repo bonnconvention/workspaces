@@ -1,0 +1,24 @@
+<?php
+
+/**
+ *  Implementation of hook_schema()
+ */
+function save_comment_schema() {
+
+  $schema = array();
+  $schema['save_comment'] = array(
+	'description' => t('Stores the comment drafts.'),
+    'fields' => array(
+         'did' => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+         'nid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+         'uid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE),
+         'pid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => '0'),
+         'subject' => array('type' => 'text', 'size' => 'small','not null' => FALSE),
+         'body' => array('type' => 'text', 'size' => 'big', 'not null' => FALSE),
+    ),
+    'primary key' => array('did'),
+  );
+
+  return $schema;
+}
+?>

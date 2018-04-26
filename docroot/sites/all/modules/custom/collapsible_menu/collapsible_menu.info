@@ -1,0 +1,6 @@
+name = "Collapsible menus"
+description = "Jquery based module for collapsible menus"" 
+version = "7.x-1.0"
+core = 7.x
+
+scripts[] = collapsible_menu.js

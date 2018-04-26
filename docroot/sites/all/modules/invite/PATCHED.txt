@@ -1,0 +1,2 @@
+The invites.page.inc has been patched to show the email in invites page in
+ASC/DESC order.

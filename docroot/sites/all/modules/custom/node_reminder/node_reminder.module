@@ -1,0 +1,498 @@
+<?php
+
+/**
+ * @file
+ * This module allows users to establish reminders to update content.
+ */
+
+
+/**
+ * Implements hook_menu().
+ */
+function node_reminder_menu() {
+  $items = array();
+  $items['admin/config/system/node_reminder'] = array(
+    'title' => 'Node Reminder Settings',
+    'description' => 'Change settings for the Node Reminders',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_reminder_admin_settings'),
+    'access arguments' => array('administer node reminders'),
+    'file' => 'node_reminder.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function node_reminder_permission() {
+  return array(
+      'administer node reminders' => array(
+          'title' => t('Administer node reminders.'),
+          'description' => t('Grants access to change the global settings of node reminders.'),
+      ),
+      'set node reminders' => array(
+          'title' => t('Set node reminders.'),
+          'description' => t('Grants access to set a node reminder.'),
+      ),
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function node_reminder_form_alter(&$form, $form_state, $form_id) {
+  $content_types = variable_get('node_reminder_node_types', array());
+
+  if (!empty($content_types) && isset($form['type']) && isset($form['#node']) && 
+	  $form['type']['#value'] .'_node_form' == $form_id &&
+	  in_array($form['type']['#value'], $content_types, true)) 
+  {
+    $reminder = new stdClass;
+    $reminder->nid = isset($form['#node']->nid) ? $form['#node']->nid : NULL;
+    $reminder->active = isset($form['#node']->reminder->active) ? $form['#node']->reminder->active : NULL;
+    $reminder->email = isset($form['#node']->reminder->email) ? $form['#node']->reminder->email : NULL;
+    $reminder->amount_of_time = isset($form['#node']->reminder->amount_of_time) ? $form['#node']->reminder->amount_of_time : NULL;
+    $reminder->unit_of_time = isset($form['#node']->reminder->unit_of_time) ? $form['#node']->reminder->unit_of_time : NULL;
+    $reminder->notify_on = isset($form['#node']->reminder->notify_on) ? $form['#node']->reminder->notify_on : NULL;
+    $reminder->note = isset($form['#node']->reminder->note) ? $form['#node']->reminder->note : NULL;
+    $reminder->repeat_on = isset($form['#node']->reminder->repeat_on) ? $form['#node']->reminder->repeat_on : NULL;
+
+    $form += node_reminder_form($form_state, $reminder);
+    drupal_add_js(drupal_get_path('module', 'node_reminder') . '/js/node_reminder.node_edit.js');
+    $form['actions']['submit']['#submit'][] = 'node_reminder_form_submit';
+    $form['#validate'][] = 'node_reminder_form_validate';
+  }
+}
+
+/**
+ * Implements hook_form().
+ */
+function node_reminder_form($form_state, $reminder) {
+  global $user;
+
+  $form = array();
+
+  if (isset($form_state['values']['reminder_email'])) {
+    $email = $form_state['values']['reminder_email'];
+  }
+  elseif ($reminder->email) {
+    $email = $reminder->email;
+  }
+  else {
+    $email = $user->mail;
+  }
+
+  $form['reminder'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Reminder'),
+	'#group' => 'additional_settings',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#access' => user_access('set node reminders'),
+  );
+
+  if (isset($reminder->nid)) {
+    $form['reminder']['nid'] = array('#type' => 'value', '#value' => $reminder->nid);
+  }
+
+  $form['reminder']['active'] = array(
+    '#title' => t('Enabled'),
+    '#type' => 'checkbox',
+    '#default_value' => isset($reminder->active) ? $reminder->active : true,
+  );
+
+  $form['reminder']['reminder_email'] = array(
+    '#title' => t('Email Address'),
+    '#description' => t('Email address that the reminder will be sent to. Multiple email addresses can be separated by a space.'),
+    '#type' => 'textfield',
+    '#size' => 60,
+    '#default_value' => $email,
+  );
+
+  $form['reminder']['amount_of_time'] = array(
+    '#title' => t('Amount of time'),
+    '#description' => t('The amount of time which will trigger the reminder.  E.G., 3, as in \'3 days\''),
+    '#type' => 'textfield',
+    '#maxlength' => 2,
+    '#size' => 2,
+    '#default_value' => $reminder->amount_of_time ? $reminder->amount_of_time : '',
+  );
+
+  $form['reminder']['unit_of_time'] = array(
+    '#title' => t('Unit of time'),
+    '#type' => 'select',
+    '#options' => array(
+      'hours' => t('Hours'),
+      'days' => t('Days'),
+      'weeks' => t('Weeks'),
+      'months' => t('Months'),
+    ),
+    '#default_value' => $reminder->unit_of_time ? $reminder->unit_of_time : '',
+    '#required' => TRUE,
+  );
+
+  $form['reminder']['repeat_on'] = array(
+    '#title' => t('Repeat Reminder'),
+    '#type' => 'checkbox',
+	'#default_value' => $reminder->repeat_on ? true : false,
+  );
+
+  $form['reminder']['note'] = array(
+    '#title' => t('Note'),
+    '#type' => 'textarea',
+    '#description' => t('Send a note in the reminder'),
+    '#default_value' => $reminder->note ? $reminder->note : '',
+  );
+
+  return $form;
+}
+
+/**
+ *  Validate post reminder form.
+ */
+function node_reminder_form_validate($form, &$form_state) {
+  $amount_of_time = $form_state['values']['amount_of_time'];
+  $form_state['values']['note'] = filter_xss($form_state['values']['note']);
+
+  // Ensure amount_of_time is whole number
+  if (!empty($amount_of_time) && (!is_numeric($amount_of_time) || (int) $amount_of_time != $amount_of_time)) {
+    form_set_error('amount_of_time', t('Amount of time must be an integer'));
+  }
+
+  // Validate email address
+  $emails = explode(' ', $form_state['values']['reminder_email']);
+  $reminder_email_errors = '';
+  foreach ($emails as $email) {
+    $email = trim($email);
+    if (!valid_email_address($email)) {
+      $reminder_email_errors .= t('Your "'. $email . '" email address is not valid.') . '<br/>';
+    }
+  }
+
+  if (!empty($reminder_email_errors))
+    form_set_error('reminder_email', $reminder_email_errors);
+}
+
+/**
+ * Submit function for reminder form.
+ */
+function node_reminder_form_submit($form, &$form_state) {
+  $reminder = new stdClass;
+  $reminder->active = $form_state['values']['active'];
+  $reminder->amount_of_time = $form_state['values']['amount_of_time'];
+  $reminder->unit_of_time = $form_state['values']['unit_of_time'];
+  $reminder->email = $form_state['values']['reminder_email'];
+  $reminder->from_date = time();
+  $reminder->nid = $form_state['values']['nid'];
+  $reminder->note = $form_state['values']['note'];
+  $reminder->repeat_on = $form_state['values']['repeat_on'];
+  node_reminder_save($reminder);
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function node_reminder_node_delete($node) {
+    node_reminder_delete($node->nid);
+}
+
+/**
+ * Implements hook_node_load().
+ */
+function node_reminder_node_load($nodes, $types) {
+    foreach ($nodes as $nid => $node) {
+        $node->reminder = node_reminder_load($nid);
+    }
+}
+
+/**
+ * Function to save node_reminder.
+ * @param
+ *  reminder object
+ */
+function node_reminder_save(&$reminder) {
+  $reminder->notify_on = strtotime(date('Y-m-d H:i:s', $reminder->from_date) . "+ {$reminder->amount_of_time} {$reminder->unit_of_time}");
+  unset($reminder->from_date);
+
+  // check to see if the reminder exists
+  $reminder_current = node_reminder_load($reminder->nid);
+  if ($reminder_current) {
+    drupal_write_record('node_reminder', $reminder, 'nid');
+  }
+  else {
+    drupal_write_record('node_reminder', $reminder);
+  }
+}
+
+/**
+ * Function to delete a reminder.
+ * @param
+ *  reminder object
+ */
+function node_reminder_delete($nid) {
+  db_query("delete from {node_reminder} where nid = :nid", array(':nid' => $nid));
+}
+
+/**
+ * Function to load a reminder.
+ * @param
+ *  nid
+ */
+function node_reminder_load($nid) {
+  $result = db_query('SELECT * FROM {node_reminder} WHERE nid = :nid', array(':nid' => $nid));
+  return $result->fetchObject();
+}
+
+/**
+ * Implements hook_cron().
+ */
+function node_reminder_cron() {
+  node_reminder_cron_process();
+}
+
+/**
+ * Implements hook_mail().
+ */
+function node_reminder_mail($key, &$message, $params) {
+  if ($key == 'node_reminder') {
+    $node = node_load($params['reminder']->nid);
+    $message['subject'] = token_replace(node_reminder_subject(), array('node' => $node));
+    $message['body'][] = token_replace(node_reminder_body(), array('node' => $node));
+  }
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function node_reminder_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+
+  if ($type == 'node' && !empty($data['node'])) {
+    $node = $data['node'];
+
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'reminder:interval':
+          $replacements[$original] = t(":amount :unit", array(':amount' => $node->reminder->amount_of_time, ':unit' => $node->reminder->unit_of_time));
+          break;
+
+        case 'reminder:url':
+          $replacements[$original] = url("node/{$node->reminder->nid}", array('absolute' => TRUE));
+          break;
+
+        case 'reminder:note':
+          $replacements[$original] = t($node->reminder->note);
+          break;
+      }
+    }
+  }
+
+  return $replacements;
+}
+
+/**
+ * Implements hook_token_info().
+ */
+function node_reminder_token_info() {
+  $info['tokens']['node']['reminder'] = array(
+      'name' => t('Reminders'), 
+      'description' => t('Tokens related to node reminders.'), 
+      'type' => 'reminder',
+  );
+
+  $info['types']['reminder'] = array(
+      'name' => t('Reminders'), 
+      'description' => t('Tokens related to node reminders.'), 
+      'needs-data' => 'node',
+  );
+
+  $info['tokens']['reminder']['interval'] = array(
+      'name' => t("Interval"), 
+      'description' => t('The amount and unit of time after which a reminder will be sent (e.g., 3 days, 6 weeks)'),
+  );
+
+  $info['tokens']['reminder']['url'] = array(
+      'name' => t("URL"), 
+      'description' => t('An absolute url for the reminder, suitable for sending in emails so users know which reminder triggered the message'),
+  );
+
+  $info['tokens']['reminder']['note'] = array(
+      'name' => t("Interval"), 
+      'description' => t('The user defined note for the reminder'),
+  );
+
+  return $info;
+}
+
+/**
+ * Implements hook_action_info().
+ */
+function node_reminder_action_info() {
+  return array(
+    'node_reminder_delete_action' => array(
+      'type' => 'node',
+      'label' => t('Remove Reminder'),
+      'configurable' => FALSE,
+      'triggers' => array('node_insert', 'node_update'),
+    ),
+    'node_reminder_add_action' => array(
+      'type' => 'node',
+      'label' => t('Add Reminder'),
+      'configurable' => TRUE,
+      'triggers' => array('node_insert', 'node_update'),
+      ),
+  );
+}
+
+/**
+ * Action callback to delete a node.
+ */
+function node_reminder_delete_action($node, $context = array()) {
+  node_reminder_delete($node->nid);
+}
+
+/**
+ * Configuration form for Add To Reminder.
+ */
+function node_reminder_add_action_form($context) {
+  $form = node_reminder_form(NULL, NULL);
+  $form['reminder']['#collapsible'] = FALSE;
+  $form['reminder']['#collapsed'] = FALSE;
+  return $form;
+}
+
+/**
+ * Validate function for Add to Reminder action form.
+ */
+function node_reminder_add_action_validate($form, &$form_state) {
+  node_reminder_form_validate($form, $form_state);
+}
+
+/**
+ * Submit function for Add to Reminder action form.
+ */
+function node_reminder_add_action_submit($form, &$form_state) {
+  $reminder = new stdClass;
+  $reminder->amount_of_time = $form_state['values']['amount_of_time'];
+  $reminder->unit_of_time = $form_state['values']['unit_of_time'];
+  $reminder->email = $form_state['values']['reminder_email'];
+  $reminder->note =  $form_state['values']['note'];
+  $reminder->repeat_on = $form_state['values']['repeat_on'];
+
+  return array('reminder' => $reminder);
+}
+
+/**
+ * Action function for add reminder.
+ */
+function node_reminder_add_action($node, $context) {
+  $reminder = $context['reminder'];
+  $reminder->from_date = time();
+  $reminder->nid = $node->nid;
+  node_reminder_save($reminder);
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function node_reminder_views_api() {
+  return array('api' => 3);
+}
+
+// MODULE FUNCTIONS
+
+/**
+ * get current message subject text, either custom or defualt if unset
+ * @return
+ *  string
+ */
+function node_reminder_subject() {
+  $default = "[site:name]: Reminder to Post";
+  return variable_get('node_reminder_message_subject', $default);
+ }
+
+/**
+ * get current message body text, either custom or defualt if unset
+ * @return
+ *  string
+ */
+function node_reminder_body() {
+  $default = "You configured this reminder to be sent to you [node:reminder:interval] after you posted [node:title]\n\n";
+  $default .= "----------------\n";
+  $default .= "This message is sent based on the reminder at [node:reminder:url]\n";
+  $default .= "----------------\n";
+  $default .= "Note: \n";
+  $default .= "[node:reminder:note]";
+
+
+  return variable_get('node_reminder_message_body', $default);
+ }
+
+/**
+ * process reminders
+ *
+ * controller function that calls list_reminders() and evaluate_reminder()
+ */
+function node_reminder_cron_process() {
+  // get list of reminders
+  $reminders_list = node_reminder_list();
+
+  if (!$reminders_list) {
+    return;
+  }
+
+  foreach ($reminders_list as $reminder) {
+    node_reminder_send($reminder);
+  }
+}
+
+/**
+ * get list of active reminders from the database
+ *
+ * @return
+ *   array of reminder objects
+ */
+function node_reminder_list() {
+  $reminders = array();
+
+  $result = db_query("SELECT * FROM {node_reminder} WHERE active = 1 AND NOW() > notify_on");
+  foreach ($result as $reminder) {
+    $reminders[] = $reminder;
+  }
+
+  return $reminders;
+}
+
+/**
+ * send reminder
+ *
+ * @param
+ *   reminder - a reminder object which needs to be sent
+ *
+ * @return
+ *   array - as returned by drupal_mail()
+ *
+ * @todo
+ *   messaging integration
+ */
+function node_reminder_send($reminder) {
+    $params = array('reminder' => $reminder);
+
+    $emails = explode(' ', $reminder->email);
+    foreach ($emails as $email) {
+        $email = trim($email);
+        if ($result = drupal_mail('node_reminder', 'node_reminder', $email, language_default(), $params)) {
+            if (isset($reminder->repeat_on) && $reminder->repeat_on) {
+                $reminder->from_date = time();
+                node_reminder_save($reminder);
+            }
+            else {
+                node_reminder_delete($reminder->nid);
+            }
+        }
+    }
+
+    return $result;
+}

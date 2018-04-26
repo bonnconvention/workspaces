@@ -1,0 +1,5 @@
+name = "Custom Solr"
+description = "Module to add custom facets to the Solr index." 
+version = "7.x-1.0"
+package = Search Toolkit
+core = 7.x

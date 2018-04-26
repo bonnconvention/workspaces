@@ -1,0 +1,56 @@
+uid,name,mail,institution_address,institution_name,official_email,phone,title,first_name,biography,country_origin,email,last_name,expert,tc_role,ngo_rep,guest,observer,tc_function,regional_rep
+2,fkeil,fkeil@unep.de,,,,,,Florian,,Germany,fkeil@unep.de,Keil,,,,,,,
+18,hazafzaf,azafzaf@gnet.tn,,,,,,Hichem,,Tunisia,azafzaf@gnet.tn,Azafzaf,0,Regional Representative (TC Member),,,,,"""Northern Africa"""
+19,jmshelbwala,johnmshelbwala2@yahoo.com,,,,,,John,,Nigeria,johnmshelbwala2@yahoo.com,Mshelbwala,0,Regional Representative (TC Member),,,,,"""Western Afric"""
+4,Mungroo,test1@test.de,,,,,Mr.,Yousoof ,"Member, Chairman",Mauritius,ymungroo@gmail.com,Mungroo,0,Regional Representative (TC Member),,,,,"""Southern Africa"""
+6,Biber,test3@test.de,,,,,Dr.,Olivier ,Member,Switzerland,Olivier.biber@buwal.admin.ch,Biber,0,Regional Representative (TC Member),,,,,"""North and South-Western Europe"""
+16,skhomenko,sergei.khomenko@fao.org,,,,,,Sergei,,Ukraine,sergei.khomenko@fao.org,Khomenko,0,Regional Representative (TC Member),,,,,"""Eastern Europe"""
+17,gjaradi,r-jaradi@cyberia.net.lb,,,,,,Ghassan,,Lebanon,r-jaradi@cyberia.net.lb,Ramadan Jaradi,0,Regional Representative (TC Member),,,,,"""Southwestern Asia"""
+13,DavidStroud,david.stroud@jncc.gov.uk,"JNCC
+Monkstone House
+City Road
+Peterborough  PE1 1JY
+UK",UK Joint Nature Conservation Committee,David.Stroud@jncc.gov.uk,+44 1733 866810,,David,,United Kingdom,david.stroud@jncc.gov.uk,Stroud,0,Regional Representative (TC Member),,,,,"""North and South-Western Europe"""
+36,dsforzin,dsforzin@unep.de,,,,,,Dunia,,Italy/Germany,dsforzin@unep.de,Sforzin,0,0,,,,,0
+35,blenten,blenten@unep.de,,,,,,Bert,,The Netherlands,blenten@unep.de,Lenten,0,0,,,,,0
+11,sdereliev,sdereliev@unep.de,,,,,,Sergey,,Bulgaria,sdereliev@unep.de,Dereliev,0,0,,,,,0
+15,jkralj,zzo@hazu.hr,,,,,,Jelena,,Croatia,zzo@hazu.hr,Kralj,0,Regional Representative (TC Member),,,,,"""Central Europe"""
+20,onasirwa,oliver.nasirwa@wetlands.org,,,,,,Oliver,,Kenya,oliver.nasirwa@wetlands.org ,Nasirwa,0,Regional Representative (TC Member),,,,,"""Eastern Africa"""
+21,jcvie,jean-christophe.vie@iucn.org,,,,,,Jean-Christophe,,France,jean-christophe.vie@iucn.org,Vié,0,NGO Representative (TC Member),IUCN,,,,0
+22,whagemeijer,ward.hagemeijer@wetlands.org,,,,,,Ward,,The Netherlands,ward.hagemeijer@wetlands.org,Hagemeijer,0,NGO Representative (TC Member),Wetlands International,,,,0
+23,nkanstrup,nk@danskjagtakademi.dk,,,,,,Niels,,Denmark,nk@danskjagtakademi.dk,Kanstrup,0,NGO Representative (TC Member),CIC,,,,0
+24,hsosovele,sosovele@ira.udsm.ac.tz,,,,,,Hussein,,Tanzania,sosovele@ira.udsm.ac.tz,Sosovele,"""Rural Economics""",Expert (TC Member),,,,,0
+25,mlewis,lewism@ukzn.ac.za,,"University of KwaZulu-Natal, Durban",lewism@ukzn.ac.za,+27 (0) 312603096,,Melissa,,South Africa,lewism@ukzn.ac.za,Lewis,"""Environmental Law""",Expert (TC Member),,,,,0
+26,jymondainmonval,jean-yves.mondain-monval@oncfs.gouv.fr,,,,,,Jean-Yves,,France,jean-yves.mondain-monval@oncfs.gouv.fr,Mondain-Monval,"""Game Managment""",Expert (TC Member),,,,,0
+27,ncrockford,nicola.crockford@rspb.org.uk,"RSPB
+The Lodge
+Sandy
+Bedfordshire
+SG19 2DL
+UK",RSPB/BirdLife International,nicola.crockford@rspb.org.uk,+44 1767 693072,,Nicola,,United Kingdom,nicola.crockford@rspb.org.uk,Crockford,0,Observer,,,BirdLife International,,0
+28,ptriplet,patrick.triplet1@orange.fr,,,,,,Patrick ,,France,patrick.triplet1@orange.fr,Triplet,0,Observer,,,OMPO,,0
+29,angus middleton,angus.middleton@face.eu,,,,,,Angus,,Zimbabwe/United Kingdom,conservation@face.eu,Middleton,0,Observer,,,FACE,,0
+30,ewhite,elizabeth.white@unep-wcmc.org,,,,,,Elizabeth,,United Kingdom,elizabeth.white@unep-wcmc.org,White,0,Observer,,,UNEP-WCMC,,0
+31,clehmann,clehmann@unep.de,,,,,,Catherine,,France/Germany,clehmann@unep.de,Lehmann,0,0,,,,,0
+32,Guy-Noel Olivier,guy-noel.olivier@ompo.org,,,,,,Guy-Noel,,France,guy-noel.olivier@ompo.org,Olivier,0,Observer,,,OMPO,,0
+33,josullivan,john.osullivan@rspb.org.uk,,,,,,John,,United Kingdom,john.osullivan@rspb.org.uk,O'Sullivan,0,Observer,,,BirdLife International,,0
+34,jkremer,jkremer@unep.de,,,,,,Jolanta,,United Kingdom,jkremer@unep.de,Kremer,0,0,,,,,0
+37,mkaemper,mkaemper@unep.de,,,,,,Marie-Therese,,Germany,mkaemper@unep.de,Kaemper,0,0,,,,,0
+38,dereliev,dereliev@gmail.com,,,,,,Sergey,,test account,dereliev@gmail.com,Dereliev,0,0,,,,,0
+39,jharradine,john.harradine@basc.org.uk,,,,,,John,,United Kingdom,john.harradine@basc.org.uk,Harradine,0,None of the above (Guest),,Guest expert on hunting issues (TC WP 2009-2012 - working group 1),,,0
+40,Baz Hughes,baz.hughes@wwt.org.uk,,,,,,Baz,,United Kingdom,baz.hughes@wwt.org.uk,Hughes,0,Observer,,,The Wildfowl and Wetlands Trust (WWT),,0
+59,amarjakangas,arto.marjakangas@riista.fi,,Finnish Wildlife Agency,,,,Arto,,Finland,arto.marjakangas@riista.fi,Marjakangas,0,NGO Representative (TC Member),CIC,,,,0
+42,pclausen,pc@dmu.dk,,,,,,Preben,,Denmark,pc@dmu.dk,Clausen,0,Observer,,,Permanent observer of Denmark,,0
+43,manderson,director@birdlife.org.za,,,,,,Mark,,South Africa,director@birdlife.org.za,Anderson,0,Regional Representative (TC Member),,,,,"""Southern Africa"""
+44,snagy,spnagy01@gmail.com,,,,,,Szabolcs ,,Hungary,szabolcs.nagy@wetlands.org,Nagy,0,NGO Representative (TC Member),Wetlands International,,,,0
+45,tmundkur,taej.mundkur@wetlands.org,,,,,,Taej,,India,taej.mundkur@wetlands.org,Mundkur,0,NGO Representative (TC Member),Wetlands International (alternate),,,,0
+60,akuehl,akuehl@cms.int,,CMS Secretariat,,,,Aline,,Germany,akuehl@cms.int,Kuehl,0,0,,,,,0
+46,guest_mzavagli,zavagli@ramsar.org,,Ramsar Convention Secretariat,,,,Monica,,Italy,zavagli@ramsar.org,Zavagli,0,None of the above (Guest),,Ramsar Convention Secretariat,,Monica is taking a look at the TC Workspace. The Ramsar Secretariat is planning a revamp of the Ramsar STRP Support Service and is in need of ideas. ,0
+47,nmikander,nmikander@unep.de,,,,,,Nina,,Finland,nmikander@unep.de,Mikander,0,0,,,,,0
+49,test_registration,tcworkspace@goforflo.info,,,,,,F,,Germany,tcworkspace@goforflo.info,K,0,0,,,,,0
+54,emoloko,emoloko@unep.de,,,,,Ms,Evelyn,,Cameroon,emoloko@unep.de,Moloko,0,0,,,,,0
+58,laguado,laguado@cms.int,,,,,,Laura,,Spain,laguado@cms.int,Aguado,0,0,,,,,0
+56,bdrerup,bdrerup@unep.de,,,,,,Birgit,,Germany,bdrerup@unep.de,Drerup,0,0,,,,,0
+57,mbarbieri,mbarbieri@unep.de,,,,,,Marco,,Italy,mbarbieri@unep.de,Barbieri,0,0,,,,,0
+61,nepler,nepler@cms.int,,CMS Secretariat,,,,Natalie,,Germany,nepler@cms.int,Epler,0,0,,,,,0
+62,swati,yelgulwa@gmail.com,,,,,,Swati,,India,yelgulwa@gmail.com,Yelgular,0,0,,,,,0

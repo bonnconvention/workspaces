@@ -1,0 +1,15 @@
+name = "User Import"
+description = "Data-Migration (Import of an csv-file with new users and profile-fields)"
+package = Development
+
+dependencies[] = migrate (>2.3)
+dependencies[] = migrate_extras
+dependencies[] = profile2
+
+files[] = user_import.migrate.inc
+
+; TIP: to show the migrate user interface delete the ";" at the beginning of the next line
+;dependencies[] = migrate_ui
+
+version = "7.x-1.0"
+core = 7.x

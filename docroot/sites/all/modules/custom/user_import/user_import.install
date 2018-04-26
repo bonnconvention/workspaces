@@ -1,0 +1,14 @@
+<?php
+/**
+* Implements hook_disable().
+*
+* the migration module should deregister its migrations
+*/
+function user_import_disable() {
+  // based on: drupal.org/node/1418350#comment-5557772
+  Migration::deregisterMigration('Wusel_Step1_UserMigration');
+  Migration::deregisterMigration('Wusel_Step2_PersonalInfoMigration');
+  Migration::deregisterMigration('Wusel_Step3_ContactInfoMigration');
+  Migration::deregisterMigration('Wusel_Step3_TCFunctionMigration');
+}
+?>
