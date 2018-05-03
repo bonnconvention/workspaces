@@ -15,7 +15,6 @@ foreach ($sites as $directory => $url) {
       'root' => '/var/local/workspaces/docroot',
       'remote-host' => 'www.unep-aewa.org',
       'remote-user' => 'php',
-      'ssh-options' => '-p 2974',
     ] + ['uri' => $directory];
 }
 
