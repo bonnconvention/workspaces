@@ -5,6 +5,8 @@ $sites = [
   'ascobans' => 'workspace.ascobans.org',
   'cms' => 'workspace.cms.int',
   'eurobats' => 'workspace.eurobats.org',
+  'sharks' => '',
+  'raptors' => '',
 ];
 
 foreach ($sites as $directory => $url) {
