@@ -2,56 +2,62 @@
 
 /**
  * @file
- * Installation file for invite module.
+ * Contains install and update functions for Invite.
  */
 
 /**
  * Implements hook_schema().
  */
 function invite_schema() {
+  $schema = array();
+
   $schema['invite'] = array(
     'description' => 'The base table for invites.',
     'fields' => array(
       'iid' => array(
-        'description' => 'The primary identifier for a invite.',
+        'description' => 'The primary identifier for the invite.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'reg_code' => array(
-        'description' => 'Stores the issued registration code and acts as primary identifier for a invite.',
+        'description' => 'Stores the issued registration code.',
         'type' => 'varchar',
-        'length' => 8,
+        'length' => 10,
         'not null' => TRUE,
         'default' => '',
       ),
-      'email' => array(
-        'description' => 'Stores the e-mail the invite has been addressed to.',
+      'type' => array(
+        'description' => 'The type (bundle) of this invite.',
         'type' => 'varchar',
-        'length' => 100,
+        'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'uid' => array(
-        'description' => 'Stores the user id of the inviter.',
+        'description' => 'ID of Drupal user creator.',
         'type' => 'int',
         'not null' => TRUE,
-        'default' => 0,
       ),
       'invitee' => array(
-        'description' => 'Stores the user id of the invitee upon registration.',
+        'description' => 'Drupal uid of the invitee upon registration.',
         'type' => 'int',
         'not null' => TRUE,
-        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Invitation status.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
       ),
       'created' => array(
-        'description' => 'Stores the creation time of the invite.',
+        'description' => 'The Unix timestamp when the invite was created.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'expiry' => array(
-        'description' => 'Stores the expiry time of the invite.',
+        'description' => 'The Unix timestamp when the invite will expire.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -63,16 +69,8 @@ function invite_schema() {
         'default' => 0,
       ),
       'canceled' => array(
-        'description' => 'Stores whether the invite has been withdrawn.',
+        'description' => 'The Unix timestamp when the invite has been withdrawn.',
         'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'resent' => array(
-        'description' => 'Stores how many times the invite has been resent.',
-        'type' => 'int',
-        'size' => 'tiny',
         'not null' => TRUE,
         'default' => 0,
       ),
@@ -80,372 +78,216 @@ function invite_schema() {
         'description' => 'Stores auxiliary data.',
         'type' => 'text',
         'not null' => TRUE,
+        'serialize' => TRUE,
       ),
-    ),
-    'unique keys' => array(
-      'reg_code' => array('reg_code'),
-    ),
-    'indexes' => array(
-      'email' => array('email'),
-      'uid'   => array('uid'),
     ),
     'primary key' => array('iid'),
+    'indexes' => array(
+      'invitee' => array('invitee'),
+    ),
+    'foreign keys' => array(
+      'user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
   );
 
-  $schema['invite_notifications'] = array(
-    'description' => 'Stores notifications of inviters.',
+  $schema['invite_type'] = array(
+    'description' => 'Stores information about all defined invite types.',
     'fields' => array(
-      'uid' => array(
-        'description' => 'Stores the user id to be notified (inviter).',
-        'type' => 'int',
+      'itid' => array(
+        'type' => 'serial',
         'not null' => TRUE,
-        'default' => 0,
+        'description' => 'Primary Key: Unique invite type ID.',
       ),
-      'invitee' => array(
-        'description' => 'Stores the user id of the invitee.',
-        'type' => 'int',
+      'type' => array(
+        'description' => 'The machine-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 32,
         'not null' => TRUE,
-        'default' => 0,
+      ),
+      'label' => array(
+        'description' => 'The human-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'data' => array(
+        'description' => 'Stores auxiliary data.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+      ),
+    ) + entity_exportable_schema_fields(),
+    'primary key' => array('itid'),
+    'unique keys' => array(
+      'type' => array('type'),
+    ),
+  );
+
+  $schema['invite_sending_controller'] = array(
+    'fields' => array(
+      'type' => array(
+        'description' => 'The machine-readable name of Invite Type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'module' => array(
+        'description' => 'Module, which implements this controller.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'name' => array(
+        'description' => 'The machine-readable name of this sending controller.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
       ),
     ),
     'unique keys' => array(
-      'uid_invitee' => array('uid', 'invitee'),
-    )
+      'invite_type_controller' => array('type', 'name'),
+    ),
+    'foreign keys' => array(
+      'invite_type' => array(
+        'table' => 'invite_type',
+        'columns' => array('type' => 'type'),
+      ),
+    ),
   );
 
   return $schema;
 }
 
 /**
- * Implements hook_uninstall().
+ * Implements hook_install().
+ */
+function invite_install() {
+  // Set default expiry time 30 days.
+  variable_set('invite_default_expiry_time', 30);
+
+  drupal_set_message(t('Thank you for installing the <a href="@url_invite" target="blank">Invite</a>.', array(
+    '@url_invite' => 'https://www.drupal.org/project/invite',
+  )));
+
+  // Notify the user they may want to install token.
+  if (!module_exists('token')) {
+    $t = get_t();
+    drupal_set_message($t('If you install the <a href="!url" target="blank">Token</a>, Invite will be able to use token patterns.', array('!url' => 'http://drupal.org/project/token')));
+  }
+}
+
+/**
+ * Implements hook_install().
  */
 function invite_uninstall() {
-  // Delete variables
-  $sql = "DELETE from {variable} WHERE name LIKE :varname";
-  db_query($sql, array(':varname' => 'invite_target_role_%'));
-  db_query($sql, array(':varname' => 'invite_maxnum_%'));
-  db_query($sql, array(':varname' => 'invite_maxmultiple_%'));
 
-  variable_del('invite_target_role_default');
-  variable_del('invite_expiry');
-  variable_del('invite_allow_join_delete');
-  variable_del('invite_subject');
-  variable_del('invite_use_users_email');
-  variable_del('invite_use_users_email_replyto');
-  variable_del('invite_manual_from');
-  variable_del('invite_manual_reply_to');
-  variable_del('invite_page_title');
-  variable_del('invite_default_mail_template');
-  variable_del('invite_help_text');
-
-  // invite_stats module
-  variable_del('invite_num_ranks');
-}
-
-/**
- * Implements hook_disable().
- */
-function invite_disable() {
-  if (invite_user_registration_by_invite_only()) {
-    variable_set('user_register', 1);
-    drupal_set_message(t('User registration option reset to %no_approval.', array('%no_approval' => t('Visitors can create accounts and no administrator approval is required.'))));
-  }
-}
-
-/**
- * Helper function to update tokens.
- */
-function _invite_update_tokens($variables, $old, $new) {
-  foreach ((array) $variables as $variable) {
-    if ($value = variable_get($variable, NULL)) {
-      $value = str_replace($old, $new, $value);
-      variable_set($variable, $value);
-    }
-  }
-}
-
-/**
- * Helper function to add a permission to a role.
- */
-function _invite_add_permission($rid, $permission) {
-  if ($permission) {
-    $current_perm = db_query("SELECT permission FROM {role_permission} WHERE rid = :rid", array(':rid' => $rid))->fetchField();
-    if ($current_perm != '') {
-      $current_perm .= ', ';
-    }
-    $current_perm .= $permission;
-    db_update('role_permission')
-      ->fields(array('permission' => $current_perm))
-      ->condition('rid', $rid)
-      ->execute();
-  }
-}
-
-/**
- * Helper function to update a variable name using role name to role id.
- */
-function _invite_update_role_name_to_id($variable) {
-  $result = db_query("SELECT * FROM {role} ORDER BY name ASC");
-  while ($role = db_fetch_object($result)) {
-    // Look for both a translated (D6) and untranslated (D5) variables.
-    // A translated one is newer and has therefore precendence.
-    $translated_role = str_replace(' ', '_', t($role->name));
-    $value = variable_get($variable . '_' . $translated_role, NULL);
-    if (is_null($value)) {
-      $untranslated_role = str_replace(' ', '_', $role->name);
-      $value = variable_get($variable . '_' . $untranslated_role, NULL);
-    }
-    if (!is_null($value)) {
-      variable_set($variable . '_' . $role->rid, $value);
-      // @TODO: Should be converted to db_delete()
-      db_query("DELETE FROM {variable} WHERE name IN('%s', '%s')", $variable . '_' . $translated_role, $variable . '_' . $untranslated_role);
-    }
-  }
-}
-
-/**
- * Switch to token.module.
- */
-function invite_update_7() {
-  $ret = array();
-  $old = array('@site', '@join_link', '@homepage', '@message', '@inviter');
-  $new = array('[site-name]', '[join-link]', '[site-url]', '[invite-message]', '[inviter]');
-  _invite_update_tokens('invite_default_mail_template', $old, $new);
-  $ret[] = array(
-    'query' => 'The message tokens for the invite module have been successfully updated.',
-    'success' => TRUE
+  $invite_vars = array(
+    'invite_message_editable',
+    'invite_default_mail_subject',
+    'invite_default_mail_body',
+    'invite_default_replace_tokens',
+    'invite_message_editable',
+    'invite_use_users_email_replyto',
+    'invite_manual_from',
+    'invite_use_users_email',
   );
-  drupal_set_message(strtr('Please note that invite now depends on the %token module.', array('%token' => l('token', 'http://drupal.org/project/token', array('attributes' => array('target' => '_blank'), 'absolute' => TRUE)))), 'error');
-  return $ret;
-}
 
-/**
- * Change message to a generic data column and convert existing messages.
- */
-function invite_update_8() {
-  $ret = array();
-  db_change_field('invite', 'message', 'data', array('type' => 'text', 'not null' => TRUE, 'default' => ''));
-
-  // Convert existing messages
-  $result = db_query("SELECT reg_code, data FROM {invite} WHERE data <> ''");
-  while ($row = db_fetch_object($result)) {
-    if (drupal_substr($row->message, 0, 2) == 'a:') {
-      // Already serialized
-      continue;
-    }
-    $data = array('subject' => NULL, 'message' => $row->data);
-    db_query("UPDATE {invite} SET data = '%s' WHERE reg_code = '%s'", serialize($data), $row->reg_code);
+  foreach ($invite_vars as $invite_var) {
+    variable_del($invite_var);
   }
 
-  return $ret;
-}
-
-/**
- * Update limit and move some settings to the premissions table.
- */
-function invite_update_9() {
-  $ret = array();
-  foreach (user_roles(0, 'send invitations') as $rid => $role) {
-    $role_no_space = str_replace(' ', '_', $role);
-
-    // INVITE_UNLIMITED_INVITES changed from 0 to -1
-    if (variable_get('invite_maxnum_' . $role_no_space, 0) == 0) {
-      variable_set('invite_maxnum_' . $role_no_space, -1);
-    }
-
-    // Convert settings that have been moved to the permissions table
-    $perms = array();
-    if (variable_get('invite_maxmultiple_' . $role_no_space, 1) != 1) {
-      $perms[] = 'send mass invitations';
-    }
-    if (variable_get('invite_allow_join_delete', 0)) {
-      $perms[] = 'withdraw accepted invitations';
-    }
-    _invite_add_permission($rid, implode(', ', $perms));
+  $variables = db_select('variable', 'v')
+    ->fields('v')
+    ->condition('name', 'invite_type_%', 'LIKE')
+    ->execute();
+  foreach ($variables as $variable) {
+    variable_del($variable->name);
   }
-  $ret[] = update_sql("DELETE from {variable} WHERE name LIKE 'invite_maxmultiple_%%'");
+}
 
-  // Expiry periods changed
-  $expiry = variable_get('invite_expiry', 30);
-  switch ($expiry) {
-    case  5:
-      $expiry =  7;
-      break;
-    case 10:
-      $expiry = 14;
-      break;
-    case 15:
-      $expiry = 14;
-      break;
-    case 20:
-      $expiry = 30;
-      break;
-    case 25:
-      $expiry = 30;
-      break;
-    case 30:
-      $expiry = 30;
-      break;
-    case 45:
-      $expiry = 60;
-      break;
-    case 60:
-      $expiry = 60;
-      break;
+/**
+ * Implements update from 2.x version to 4.x.
+ */
+function invite_update_7400() {
+  db_rename_table('invite', 'invite_2x');
+  db_rename_table('invite_notifications', 'invite_notifications_2x');
+
+  // Create tables.
+  $schema = invite_schema();
+  foreach ($schema as $table_name => $specs) {
+    db_create_table($table_name, $specs);
   }
-  variable_set('invite_expiry', $expiry);
 
-  $ret[] = array(
-    'query' => 'The access permissions have been updated by the invite module.',
-    'success' => TRUE
-  );
-  return $ret;
+  // We unable move the data because invite_by_email should be installed.
+  // So all data transfer will be moved.
+  variable_set('invite_version_updated', TRUE);
+  variable_set('invite_default_expiry_time', 30);
+
+  drupal_set_message(t('Invite was successfully installed. You could migrate !link.', array('!link' => l(t('old invites'), 'admin/config/people/invite/migrate'))));
 }
 
 /**
- * Update tokens for security.
+ * Adding 'status' to invite table.
  */
-function invite_update_10() {
-  // E-mail template
-  $old = array('[invite-message]', '[inviter]');
-  $new = array('[invite-message-raw]', '[inviter-raw]');
-  _invite_update_tokens('invite_default_mail_template', $old, $new);
-  // E-mail name and subject
-  _invite_update_tokens(array('invite_email_name', 'invite_subject'), '[inviter]', '[inviter-raw]');
-  $ret = array(array(
-    'query' => 'The tokens for the invite module have been successfully updated.',
-    'success' => TRUE
-  ));
-  return $ret;
-}
+function invite_update_7401() {
 
-/**
- * Add track permission to all roles that currently have send permission.
- */
-function invite_update_11() {
-  $ret = array();
-  foreach (array_keys(user_roles(0, 'send invitations')) as $rid) {
-    _invite_add_permission($rid, 'track invitations');
+  // The status field might already exist on the invite table with incorrect
+  // settings.
+  // We need to check if the status field exists in the invite table if it does
+  // drop it.
+  // We are going to overwrite all values in the status field later in this
+  // update hook so dropping this field won't have any negative consequences.
+  if (db_field_exists('invite', 'status')) {
+    db_drop_field('invite', 'status');
   }
-  $ret[] = array(
-    'query' => 'The access permissions have been updated by the invite module.',
-    'success' => TRUE
-  );
-  return $ret;
-}
 
-/**
- * Change user_register value for enhanced compatibility with LoginToboggan.
- */
-function invite_update_12() {
-  if (variable_get('user_register', 1) == 'inviteonly') {
-    variable_set('user_register', '1-inviteonly');
-  }
-  return array();
-}
-
-/**
- * @{
- * Invite 2.x updates
- */
-
-/**
- * 1. Allow multiple invitations for the same e-mail address.
- * 2. Changed some column names to be more descriptive.
- * 3. Added a column to flag canceled invites.
- * 4. Added resent column.
- */
-function invite_update_200() {
-  $ret = array();
-  db_drop_primary_key('invite');
-  db_add_index('invite', 'email', array('email'));
-  db_change_field('invite', 'mid', 'invitee', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
-  db_change_field('invite', 'timestamp', 'joined', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
-  db_add_field('invite', 'created', array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
-  db_add_field('invite', 'canceled', array('type' => 'int', 'size' => 'tiny', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
-  db_add_field('invite', 'resent', array('type' => 'int', 'size' => 'tiny', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
-  return $ret;
-}
-
-/**
- * Revamped notification system.
- */
-function invite_update_201() {
-  $ret = array();
-  db_create_table('invite_notifications', array(
-    'description' => 'Stores notifications of inviters.',
-    'fields' => array(
-      'uid' => array(
-        'description' => 'Stores the user id to be notified (inviter).',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'invitee' => array(
-        'description' => 'Stores the user id of the invitee.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-    'indexes' => array(
-      'uid' => array('uid'),
-    )
-  ));
-  // Convert old data
-  // @TODO: Should be converted to db_insert
-  db_query("INSERT INTO {invite_notifications} (uid, invitee) SELECT uid, invitee FROM {invite} WHERE joined <> 0 AND received = 0");
-  // Drop old column
-  db_drop_field('invite', 'received');
-  return $ret;
-}
-
-/**
- * Optimize index of notification table.
- */
-function invite_update_202() {
-  $ret = array();
-  db_drop_index('invite_notifications', 'uid');
-  db_add_unique_key('invite_notifications', 'uid_invitee', array('uid', 'invitee'));
-  return $ret;
-}
-
-/**
- * Update variable names to use role id instead of translated role name.
- * @see http://drupal.org/node/322748
- */
-function invite_update_203() {
-  $ret = array();
-  _invite_update_role_name_to_id('invite_maxnum');
-  _invite_update_role_name_to_id('invite_target_role');
-  return $ret;
-}
-
-/**
- * add primary identifier (iid)
- */
-function invite_update_7200() {
-  $spec = array(
-    'description' => 'The primary identifier for a invite.',
-    'type' => 'serial',
-    'unsigned' => TRUE,
+  // Add status field to invite table.
+  $specs = array(
+    'type' => 'int',
     'not null' => TRUE,
+    'description' => 'Invitation status.',
+    'default' => 1,
+    'initial' => 1,
   );
-  $new_keys = array(
-    'primary key' => array(
-      'invite' => 'iid',
-    )
-  );
-  db_add_field('invite', 'iid', $spec, $new_keys);
-}
+  db_add_field('invite', 'status', $specs);
 
-/**
- * Change id of 'Invitees only' option on user settings form.
- */
-function invite_update_7201() {
-  if (variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL) === '1-inviteonly') {
-    variable_set('user_register', USER_REGISTER_INVITATION_ONLY);
+  // Calculate and store invite status from existing data.
+  $invites = db_select('invite', 'i')
+    ->fields('i', array('iid', 'created', 'canceled', 'joined', 'expiry'))
+    ->execute();
+
+  foreach ($invites as $invite) {
+    // Default to Valid.
+    $status = 1;
+
+    // Withdrawn.
+    if ($invite->canceled != 0) {
+      $status = 2;
+    }
+    // Used.
+    elseif ($invite->joined != 0) {
+      $status = 3;
+    }
+    // Expired.
+    elseif ($invite->expiry < REQUEST_TIME) {
+      $status = 4;
+    }
+
+    db_update('invite')
+      ->fields(array('status' => $status))
+      ->condition('iid', $invite->iid)
+      ->execute();
   }
 }

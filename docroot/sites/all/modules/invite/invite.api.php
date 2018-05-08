@@ -2,155 +2,103 @@
 
 /**
  * @file
- * API documentation for Invite module.
+ * Hooks provided by the Invite.
  */
 
 /**
- * HOOKS
- */
-
-/**
- * Respond to an invitation being sent out.
+ * Allow other modules to act on invite's withdrawn.
  *
- * This hook is invoked right after an invitation has been created and sent out.
- *
- * @param $invite
- *   The invite object that has just been created.
- * @param $send
- *   TRUE, if an invitation email has been sent; FALSE, if only a registration
- *   link has been generated.
- */
-function hook_invite_send($invite, $send) {
-}
-
-/**
- * Respond to an invitation withdrawal.
- *
- * This hook is invoked right after an invitation has been withdrawn.
- *
- * @param $invite
- *   The invite object that has just been withdrawn.
+ * @param Invite $invite
+ *   Invite object.
  */
 function hook_invite_withdraw($invite) {
+  // Delete notifications when user withdrawn invitation.
+  db_delete('invite_notifications')
+    ->condition('iid', $invite->iid)
+    ->execute();
 }
 
 /**
- * Respond to an invitation acceptance.
+ * Allow other modules to act when invite accepted.
  *
- * This hook is invoked right after a user account has been created by using an
- * invitation.
- *
- * @param $invite
- *   The invite object that has just been accepted.
- * @param $accout
- *   The newly created user account.
+ * @param Invite $invite
+ *   Invite object.
  */
-function hook_invite_accept($invite, $accout) {
+function hook_invite_accept($invite) {
+  global $user;
+
+  // Add message, when user accepts invite.
+  $message = array(
+    'iid' => $invite->iid,
+    'uid' => $invite->uid,
+    'inviter' => $invite->uid,
+    'invitee' => $invite->invitee,
+    'message_type' => 'inviter_notification',
+  );
+
+  drupal_write_record('invite_notifications', $message);
 }
 
 /**
- * Alter roles that are being added to the user who has just accepted an invitation
- * and created an account.
+ * Alters target roles for user.
  *
- * This hook is invoked after the target roles for the new registrant have been
- * determined, but before they have been assigned to the user. Modify $roles to
- * change what roles will be added to the user.
+ * Used when needed to add/change resulting roles for user.
  *
- * @param $roles
- *   An array of role IDs that will be added to the user.
- * @param $invite
- *   The invite that the user has accepted.
- * @param $account
- *   The new account that is being created. This object comes from hook_user_presave,
- *   and is not a fully populated user object.
+ * @param array $targets
+ *   Array of roles which will be added to invited user account.
+ * @param Invite $invite
+ *   Invite object.
+ * @param object $account
+ *   Invited user account object.
  */
-function hook_invite_target_roles(&$roles, $invite, $account) {
-}
-
-/**
- * Alter the limit of invitations a user is allowed to send.
- *
- * This hook is invoked when the invitation limit is being determined for a
- * specific user. Modules implementing this hook should return the number of
- * invitations they wish the user to be limited to. If multiple modules return
- * values, the last invoked module will take precedence. The hook should
- * retrun INVITE_UNLIMITED if it wishes to remove the limitation.
- *
- * @param $account
- *   The account for which the limit is being determined.
- * @param $limit
- *   The currently exposed limit based on Invite's role settings.
- * @return
- *   The number of invitations that the module wants to limit the user to. If
- *   the module does not wish to alter the limit, it should not return anything.
- */
-function hook_invite_limit($account, $limit) {
-  if ($account->uid == 1) {
-    return 1000;
+function hook_invite_target_roles_alter($targets, $invite, $account) {
+  // Add 'friday invited' role if user registering on Friday.
+  if (date("N", time()) == 5) {
+    $targets[ROLE_FRIDAY_INVITED] = ROLE_FRIDAY_INVITED;
   }
 }
 
 /**
- * FUNCTIONS
+ * Defines the module as being an invite sending controller.
+ *
+ * @return array
+ *   An array of settings containing the keys:
+ *   - label: A human readable, translated label for the controller.
  */
-
-/**
- * Create an invite.
- */
-function example_create_invite() {
-  // Create an empty invite.
-  $invite = invite_create();
-
-  // Set parameters.
-  $invite->email = $email;
-  $invite->data = array('subject' => $subject, 'message' => $message);
-
-  // Save it.
-  invite_save($invite);
+function hook_invite_sending_controller() {
+  return array(
+    'label' => t('My module invitation controller'),
+  );
 }
 
 /**
- * Send an invitation email.
+ * Sends the invitation.
+ *
+ * Called by the Invite::sendInvite() method.
+ *
+ * @param Invite $invite
+ *   The invitation to send.
  */
-function example_send_invite_email() {
-  // Either load an existing invite...
-  if ($reg_code) {
-    $invite = invite_load($reg_code);
-
-    // Modify parameters if necessary.
-    $invite->expiry = REQUEST_TIME + (60 * 60 * 24 +7);
-    $invite->data = array('subject' => $subject, 'message' => $message);
+function hook_invite_send($invite) {
+  if (!empty($invite->type_details()->invite_sending_controller['my_module'])) {
+    global $language;
+    $entity = entity_metadata_wrapper('invite', $invite);
+    $params = array('invite' => $invite, 'wrapper' => $entity);
+    $from = $entity->inviter->mail->value();
+    drupal_mail('my_module', 'invite', $entity->invitee->mail->value(), $language, $params, $from, TRUE);
   }
-  // or create a new one.
-  else {
-    $invite = invite_create();
+}
 
-    // Specify initial parameters.
-    $invite->email = $email;
-    $invite->data = array('subject' => $subject, 'message' => $message);
+/**
+ * Alter invite_accept message, type and redirect.
+ */
+function hook_invite_accept_alter($data) {
+  $invite = $data['invite'];
+
+  if (!empty($invite->data['gid']) && INVITE_VALID === $invite->status()) {
+
+    $data['redirect'] = 'node/' . $invite->data['gid'];
+    $data['message'] = t('Please login or register for an account to begin working on this item.');
+    $data['type'] = 'error';
   }
-
-  // Send email to the invitee. If sending is successful, $invite is saved to the database.
-  invite_send($invite);
-}
-
-/**
- * Modify an invite.
- */
-function example_modify_invite() {
-  // Fetch the invite.
-  $invite = invite_load($reg_code);
-
-  // Modify parameters as necessary.
-  $invite->expiry = REQUEST_TIME + (60 * 60 * 24 +7);
-
-  // Save it.
-  invite_save($invite);
-}
-
-/**
- * Delete an invite.
- */
-function example_delete_invite() {
-  invite_delete(array('reg_code' => $code_to_delete));
 }
