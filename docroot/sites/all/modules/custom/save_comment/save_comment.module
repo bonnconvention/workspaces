@@ -239,9 +239,9 @@ function save_comment_form_alter(&$form, &$form_state, $form_id) {
 
 function save_comment_node_presave($node) {
   if( $node->type == "working_group_topic" ) {
-    if( !empty($node->group_audience['und'][0]['gid'])){
-      $group = og_load($node->group_audience['und'][0]['gid']);
-      $wg_tax = taxonomy_get_term_by_name(str_replace(",", "", $group->label));
+    if( !empty($node->og_group_ref['und'][0]['target_id'])){
+      $group = node_load($node->og_group_ref['und'][0]['target_id']);
+      $wg_tax = taxonomy_get_term_by_name(str_replace(",", "", $group->title));
       foreach($wg_tax as $key => $value) {
         if( empty($node->field_wg_taxonomy) || empty($node->field_wg_taxonomy['und']) ){
           $node->field_wg_taxonomy['und'][] = array('tid' => $value->tid);
@@ -249,73 +249,6 @@ function save_comment_node_presave($node) {
       }
     }
   }
-}
-
-function save_comment_node_view($node, $view_mode, $langcode) {                 
-  if($node->type == "working_group" || $node->type == "working_group_topic"|| $node->type == "discussion_wiki") {  
-                                                                                
-    // Get group of the node                                                    
-    $group = og_get_group('node', $node->nid);                                  
-                                                                                
-    // Get group id of node. check type of the node first.                        
-    $node_gid = "";                                                             
-    if($node->type == "working_group") {                                        
-      $query = db_select('og')                                                      
-        ->fields('og', array('gid'))                                                
-        ->condition('etid', $node->nid, '=')                                        
-        ->execute();                                                                
-      foreach($query as $gid) {                                                     
-        $node_gid = $gid->gid;                                                      
-      }                                                                         
-    }                                                                           
-    if($node->type == "working_group_topic") {                                  
-      $node_gid = $node->group_audience['und'][0]['gid'];                       
-      $group = og_load($node_gid);                                              
-    }                                                                           
-    if($node->type == "discussion_wiki") {                                  
-      $node_gid = $node->group_audience['und'][0]['gid'];                       
-      $group = og_load($node_gid);                                              
-    }                                                                           
-                                                                                
-    $private_group = FALSE;                                                     
-    $query = db_select('field_data_group_access')                               
-      ->fields('field_data_group_access', array('group_access_value'))          
-      ->condition('entity_id', $group->etid, '=')                               
-      ->execute();                                                              
-    foreach($query as $group_visibilty) {                                       
-      if($group_visibilty->group_access_value) {                                
-        $private_group = TRUE;                                                  
-      }                                                                         
-    }
-    global $user;                                                                 
-    $found = FALSE;                                                               
-                                                                                
-    // Groups user is part of                                                   
-    $user_groups = og_get_groups_by_user($user);                                  
-                                                                                
-    // check if user belongs to any admin role                                  
-    $admin_roles = array('3', '4', '12', '13');                                 
-    $admin = FALSE;                                                             
-                                                                                
-    foreach($admin_roles as $rid) {                                             
-      if(array_key_exists($rid, $user->roles)) {                                
-        $admin = TRUE;                                                          
-      }                                                                         
-    }                                                                           
-                                                                                
-    // check is gid is part of the groups of the user                           
-    foreach($user_groups as $ug) {
-      if($ug == $node_gid) {
-        $found = TRUE;
-      }
-    }
-                                  
-    // If user is not part of group, unset body                                 
-    if(!$admin && !$found && $private_group) {
-      unset($node->content);                                                    
-      drupal_set_message("You are not authorized to view this content.", 'status');
-    }                                                                           
-  }                                                                             
 }
 
 function save_comment_file_download_access($file_item, $entity_type, $entity) {
