@@ -4,6 +4,27 @@
  * The interface for all 'query' objects.
  */
 interface DrupalSolrQueryInterface {
+
+  /**
+   * Get query name.
+   */
+  function getName();
+
+  /**
+   * Get query searcher name (for facetapi, views, pages, etc).
+   */
+  function getSearcher();
+
+  /**
+   * Get context values.
+   */
+  function getContext();
+
+  /**
+   * Set context value.
+   */
+  function addContext(array $context);
+
   /**
    * Returns all filters matching $name, if set; otherwise, returns all filters.
    *
@@ -208,7 +229,7 @@ interface DrupalSolrQueryInterface {
    * Handles aliases for field to make nicer URLs.
    *
    * @param $field_map
-   *   An array keyed with aliases with the real Solr index field name as value.
+   *   An array keyed with real Solr index field names with the alias as value.
    *
    * @return DrupalSolrQueryInterface
    *   The called object.
@@ -326,14 +347,6 @@ interface DrupalApacheSolrServiceInterface {
   function ping($timeout = 2);
 
   /**
-   * Call the /admin/system servlet
-   *
-   * @return
-   *   (array) With all the system info
-   */
-  function setSystemInfo();
-
-  /**
    * Get information about the Solr Core.
    *
    * @return
@@ -402,32 +415,6 @@ interface DrupalApacheSolrServiceInterface {
   function makeServletRequest($servlet, $params = array(), $options = array());
 
   /**
-   * Escape a value for special query characters such as ':', '(', ')', '*', '?', etc.
-   *
-   * NOTE: inside a phrase fewer characters need escaped, use {@link DrupalApacheSolrService::escapePhrase()} instead
-   *
-   * @param string $value
-   * @return string
-   */
-  static function escape($value);
-
-  /**
-   * Escape a value meant to be contained in a phrase for special query characters
-   *
-   * @param string $value
-   * @return string
-   */
-  static function escapePhrase($value);
-
-  /**
-   * Convenience function for creating phrase syntax from a value
-   *
-   * @param string $value
-   * @return string
-   */
-  static function phrase($value);
-
-  /**
    * Get the Solr url
    *
    * @return string
@@ -482,7 +469,7 @@ interface DrupalApacheSolrServiceInterface {
    *
    * @throws Exception If an error occurs during the service call
    */
-  function commit($optimize = true, $waitFlush = true, $waitSearcher = true, $timeout = 3600);
+  function commit($optimize = TRUE, $waitFlush = TRUE, $waitSearcher = TRUE, $timeout = 3600);
 
   /**
    * Create a delete document based on document ID
@@ -531,12 +518,7 @@ interface DrupalApacheSolrServiceInterface {
    *
    * @throws Exception If an error occurs during the service call
    */
-  function optimize($waitFlush = true, $waitSearcher = true, $timeout = 3600);
-
-  /**
-   * Like PHP's built in http_build_query(), but uses rawurlencode() and no [] for repeated params.
-   */
-  function httpBuildQuery(array $query, $parent = '');
+  function optimize($waitFlush = TRUE, $waitSearcher = TRUE, $timeout = 3600);
 
   /**
    * Simple Search interface
@@ -549,4 +531,14 @@ interface DrupalApacheSolrServiceInterface {
    * @throws Exception If an error occurs during the service call
    */
   function search($query = '', array $params = array(), $method = 'GET');
+
+  /**
+   * Get the current solr version. This could be 1, 3 or 4
+   *
+   * @return int
+   *   1, 3 or 4. Does not give a more details version, for that you need
+   *   to get the system info.
+   */
+  function getSolrVersion();
+
 }

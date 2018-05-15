@@ -18,7 +18,6 @@ docroot/web.config
 docroot/sites/*/settings*.php
 .idea
 *.local.php
-drush/aliases/aliases.drushrc.php
 conf/config.json
 conf/apache.conf
 
