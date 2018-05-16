@@ -1,0 +1,5 @@
+name = "Workspaces base"
+description = "Holds base functionality."
+dependencies[] = invite
+core = 7.x
+version = VERSION

@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * Implements hook_form_alter().
+ */
+function workspaces_base_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'user_login_block':
+      // Hide the register button for non members if registration is invite only.
+      if (invite_user_registration_by_invite_only()) {
+        $new_items = array();
+        $new_items[] = l(t('Request new password'), 'user/password', array('attributes' => array('title' => t('Request new password via e-mail.'))));
+        $form['links'] = array('#markup' => theme('item_list', array('items' => $new_items)));
+      }
+      break;
+  }
+}
