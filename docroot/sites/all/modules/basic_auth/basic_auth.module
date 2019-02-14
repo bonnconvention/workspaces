@@ -105,7 +105,7 @@ function basic_auth($path, $username, $password, $id = 'basic_auth', $callback =
   // As a result this forces basic HTTP authentication headers to be sent when
   // they are not needed to be sent. Let's try to prevent this for some of the
   // cases...
-  if (!basic_auth_path_matches_current($path)) {
+  if (current_path() !== $path) {
     return TRUE;
   }
 
@@ -249,25 +249,4 @@ function basic_auth_get_entries() {
   }
 
   return $data;
-}
-
-/**
- * Determine whether or not a given path matches the current path.
- *
- * @param string $path
- *   The path to check.
- *
- * @return bool
- *   Whether or not the paths match.
- */
-function basic_auth_path_matches_current($path) {
-  $current_path_array = explode('/', current_path());
-  $path_array = explode('/', $path);
-  foreach ($path_array as $index => $fragment) {
-    // Replace wildcards.
-    if (substr($fragment, 0, 1) === '%') {
-      $path_array[$index] = arg($index);
-    }
-  }
-  return count(array_diff($current_path_array, $path_array)) === 0;
 }
