@@ -15,9 +15,10 @@ docroot/web.config
 
 
 # Ignore configuration files that may contain sensitive information.
-docroot/sites/*/settings*.php
+docroot/sites/*/settings.local.php
 .idea
 *.local.php
+!docroot/sites/*/example.settings.local.php
 conf/config.json
 conf/apache.conf
 
