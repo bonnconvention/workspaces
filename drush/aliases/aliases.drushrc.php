@@ -14,10 +14,10 @@ foreach ($sites as $directory => $url) {
   $aliases["{$directory}"] = ['uri' => $directory];
 
   $aliases["{$directory}.prod"] = [
-      'root' => '/var/local/workspaces/docroot',
+      'root' => '/var/www/html/workspaces/prod/docroot',
       'remote-host' => 'www.unep-aewa.org',
       'remote-user' => 'php',
-    ] + ['uri' => $directory];
+    ] + ['uri' => $url];
 }
 
 // Add your local aliases.
