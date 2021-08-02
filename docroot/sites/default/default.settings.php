@@ -247,6 +247,24 @@
 $databases = array();
 
 /**
+ * Quoting of identifiers in MySQL.
+ *
+ * To allow compatibility with newer versions of MySQL, Drupal will quote table
+ * names and some other identifiers. The ANSI standard character for identifier
+ * quoting is the double quote (") and that can be used by MySQL along with the
+ * sql_mode setting of ANSI_QUOTES. However, MySQL's own default is to use
+ * backticks (`). Drupal 7 uses backticks for compatibility. If you need to
+ * change this, you can do so with this variable. It's possible to switch off
+ * identifier quoting altogether by setting this variable to an empty string.
+ *
+ * @see https://www.drupal.org/project/drupal/issues/2978575
+ * @see https://dev.mysql.com/doc/refman/8.0/en/identifiers.html
+ * @see \DatabaseConnection_mysql::setPrefix
+ * @see \DatabaseConnection_mysql::quoteIdentifier
+ */
+# $conf['mysql_identifier_quote_character'] = '"';
+
+/**
  * Access control for update.php script.
  *
  * If you are updating your Drupal installation using the update.php script but
@@ -477,6 +495,23 @@ ini_set('session.cookie_lifetime', 2000000);
  * below.
  */
 # $conf['block_cache_bypass_node_grants'] = TRUE;
+
+/**
+ * Expiration of cache_form entries:
+ *
+ * Drupal's Form API stores details of forms in cache_form and these entries are
+ * kept for at least 6 hours by default. Expired entries are cleared by cron.
+ * Busy sites can encounter problems with the cache_form table becoming very
+ * large. It's possible to mitigate this by setting a shorter expiration for
+ * cached forms. In some cases it may be desirable to set a longer cache
+ * expiration, for example to prolong cache_form entries for Ajax forms in
+ * cached HTML.
+ *
+ * @see form_set_cache()
+ * @see system_cron()
+ * @see ajax_get_form()
+ */
+# $conf['form_cache_expiration'] = 21600;
 
 /**
  * String overrides:
