@@ -2782,3 +2782,7 @@ function file_uri_normalize_dot_segments($uri) {
 
   return $uri;
 }
+
+/**
+ * @} End of "defgroup file".
+ */
